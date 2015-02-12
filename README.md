@@ -4,7 +4,7 @@
   <img src="https://github.com/Glutanimate/yadPush/blob/master/desktop/yadpush-header.png" alt="yadPush header"/>
 </p>
 
-**yadPush** is a simple graphical Pushbullet client designed for Linux. It is based on [`pushbullet-gui`](https://github.com/lbrfabio/bash/commits/master) by [lbrfabio](https://github.com/lbrfabio).
+**yadPush** is a simple graphical Pushbullet client designed for Linux. It is based on [`pushbullet-gui`](https://github.com/lbrfabio/bash/tree/master/pushbullet-gui) by [lbrfabio](https://github.com/lbrfabio).
 
 ## Table of Contents
 
@@ -13,6 +13,7 @@
 - [Features and screenshots](#features-and-screenshots)
 - [Installation](#installation)
     - [Dependencies](#dependencies)
+    - [Authentication with Pushbullet](#authentication-with-pushbullet)
     - [Setup](#setup)
 - [Usage](#usage)
 - [Known issues](#known-issues)
@@ -41,7 +42,7 @@ The following types of pushes are supported:
 
 ### Dependencies
 
-*yadPush* depends on `yad`, `libnotify-bin` and `pushbullet-bash`.
+*yadPush* depends on `yad`, `libnotify-bin`, and `pushbullet-bash`.
 
 On Ubuntu 12.04 and up you can install the first two dependencies with the following commands:
 
@@ -54,6 +55,8 @@ You will have to install `pushbullet-bash` manually by checking it out of [its r
     git clone https://github.com/Red5d/pushbullet-bash.git
     cd pushbullet-bash
     sudo ln -s pushbullet /usr/local/bin/pushbullet
+
+### Authentication with Pushbullet
 
 `pushbullet-bash` requires a Pushbullet API key to work. You can find your personal access token on your [Pushbullet account page](https://www.pushbullet.com/account). 
 
@@ -69,7 +72,7 @@ Please be aware that your access token is similar to a password and has to be ke
 
 ### Setup
 
-1. Install all dependencies
+1. Install all dependencies and set your API key up
 
 2. Clone this repository or download the latest zip-file and extract it. Place the folder wherever you prefer, but make sure not to delete it after completing these steps.
 
