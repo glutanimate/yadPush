@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=yadPush
+Comment=Pushbullet client for Linux
+Exec=yadpush %f
+Icon=yadpush
+Terminal=false
+Type=Application
+StartupWMClass=yadPush

@@ -1,0 +1,210 @@
+#!/bin/bash
+# Name:         yadPush
+# Author:       (c) 2015 Glutanimate <https://github.com/Glutanimate/>
+# Based on:     pushbullet-gui by lbrfabio 
+#               (https://github.com/lbrfabio/bash/tree/master/pushbullet-gui)
+#               
+# Description:  Simple graphical Pushbullet client for Linux based on 
+#               pushbullet-bash by Red5d and yad by Victor Ananjevsky
+# Features:     Can perform the following types of pushes:
+#               - notes
+#               - links
+#               - lists
+#               - addresses
+#               - files
+#               
+# Dependencies: yad libnotify-bin pushbullet-bash 
+#               (https://github.com/Red5d/pushbullet-bash)
+#
+# License:      GNU GPLv3 (http://www.gnu.de/documents/gpl-3.0.en.html)
+#
+# Usage:        yadpush <file (optional)>
+#               For more advanced instructions please consult the README.
+
+# Variables
+
+## General
+Executable="$(readlink -f "$0")"
+Source="${Executable%/*}"
+TmpFolder="/tmp/pushbullet"
+PlugKey=$RANDOM
+
+ConfigFile="$HOME/.config/pushbullet"
+pushbullet_client="pushbullet-bash"
+
+## GUI
+GuiIcon="yadpush"
+GuiActionPush="$Source/desktop/icon-push.png"
+GuiLogo="$Source/desktop/yadpush-header.png"
+GuiTitle="yadPush"
+GuiWmClass="$GuiTitle"
+
+# Functions
+
+cleanup(){
+  [[ -n "$TmpFolder" ]] && [[ -d "$TmpFolder" ]] && rm -r "$TmpFolder"
+}
+
+gui_notify(){
+  notify-send -i "$GuiIcon" "$GuiTitle" "$1"
+  echo "$1"
+}
+
+is_API_set () {
+  [[ -f "$ConfigFile" ]] && source "$ConfigFile"
+  if [[ -z "$API_KEY" ]]; then
+    gui_notify "Warning, your API key is not set. Please consult the README."
+    exit 1
+  fi
+}
+
+is_instance_running(){
+  if [[ -d "$TmpFolder" ]]; then
+    echo "Existing instance found. Exiting."
+    exit 1
+  fi
+}
+
+get_device_list(){
+  #Extract and format devices list
+  PushbulletDevices="$("$pushbullet_client" list | sed -e '1,/------------------/d')"
+  if [[ -z "$PushbulletDevices" ]]; then
+    gui_notify "Warning, no devices found."
+    exit 1
+  fi
+  YadDevicelist="$(echo "$PushbulletDevices" | tr '\n' ';' | head -c -1)"
+  YadFirstDevice="$(echo "$PushbulletDevices" | head -1)"
+}
+
+push () {
+  DEVICE="$(echo "$2" | cut -d '|' -f 1)"
+
+  case $1 in
+  1)
+      TITLE="$(echo "$2" | cut -d '|' -f 2)"
+      TEXT="$(echo "$2" | cut -d '|' -f 3)"
+      TEXT=$(echo -e "$TEXT") #preserve newlines
+      "$pushbullet_client" push "$DEVICE" note "$TITLE" "$TEXT"
+      ;;
+  2)
+      TITLE="$(echo "$2" | cut -d '|' -f 2)"
+      URL="$(echo "$2" | cut -d '|' -f 3)"
+      "$pushbullet_client" push "$DEVICE" link "$TITLE" "$URL"
+      ;;
+  3)
+      TITLE="$(echo "$2" | cut -d '|' -f 2)"
+      IFS=$'\n' read -d '' -r -a "ITEMS" < <(echo -n -e "$2" | head -c -1 | cut -d '|' -f 3)
+      "$pushbullet_client" push "$DEVICE" list "$TITLE" "${ITEMS[@]}"
+      ;;
+  4)
+      NAME="$(echo "$2" | cut -d '|' -f 2)"
+      ADDRESS="$(echo "$2" | cut -d '|' -f 3)"
+      "$pushbullet_client" push "$DEVICE" address "$NAME" "$ADDRESS"
+      ;;
+  5)
+      FILE="$(echo "$2" | cut -d '|' -f 2)"
+      if [[ -z "$FILE" ]]; then
+        gui_notify "Error: No File selected."
+        exit 1
+      fi
+      "$pushbullet_client" push "$DEVICE" file "$FILE"
+      ;;
+
+  esac
+}
+
+gui_main(){
+  yad --plug="$PlugKey" --tabnum=1 --form \
+      --field=" Device":CB "$YadDevicelist" \
+      --field=" Title" "" \
+      --field=" Note":TXT "" \
+      --columns=1 \
+      --item-separator=';' &> "$TmpFolder/tab1" &
+  yad --plug="$PlugKey" --tabnum=2 --form \
+      --field=" Device":CB "$YadDevicelist" \
+      --field=" Title" "" \
+      --field=" URL" "" \
+      --columns=1 \
+      --item-separator=';' &> "$TmpFolder/tab2" &
+  yad --plug="$PlugKey" --tabnum=3 --form \
+      --field=" Device":CB "$YadDevicelist" \
+      --field=" Title" "" \
+      --field=" Items (one per line)":TXT "" \
+      --columns=1 \
+      --item-separator=';' &> "$TmpFolder/tab3" &
+  yad --plug="$PlugKey" --tabnum=4 --form \
+      --field=" Device":CB "$YadDevicelist" \
+      --field=" Name" "" \
+      --field=" Address" "" \
+      --columns=1 \
+      --item-separator=';' &> "$TmpFolder/tab4" &
+  yad --plug="$PlugKey" --tabnum=5 --form \
+      --field=" Device":CB "$YadDevicelist" \
+      --field=" File":FL "" \
+      --columns=1 \
+      --item-separator=';' &> "$TmpFolder/tab5" &
+  yad --notebook --key="$PlugKey" \
+      --tab="    Note   " --tab="    Link   " --tab="   List   " --tab="    Address   "  --tab="    File   " \
+      --title="$GuiTitle" --class="$GuiWmClass" --width="400" --height="400" --center \
+      --window-icon="$GuiIcon" --image="$GuiLogo" --image-on-top \
+      --button="_Cancel!gtk-cancel:1" --button="_Push it!$GuiActionPush:0"
+
+  if [ $? != 0 ] ; then
+      exit 0
+  fi
+}
+
+gui_file(){
+  res="$(yad --form --title="$GuiTitle" --class="$GuiWmClass" \
+    --center --height="200" --width="400" \
+    --window-icon="$GuiIcon" --image="$GuiLogo" --image-on-top \
+    --field="  Device":CB "$YadDevicelist" \
+    --field="  File":FL "$1" \
+    --columns=1 \
+    --item-separator=';' \
+    --button="_Cancel:1" \
+    --button="_Push it:0" )"
+
+  if [ $? != 0 ] ; then
+      exit 0
+  fi
+
+  PbOut=$(push 5 "$res")
+  gui_notify "Push $PbOut."
+  exit
+}
+
+push_main(){
+  for i in 1 2 3 4 5
+  do
+      res="$(cat "$TmpFolder/tab$i")"
+      if [[ "$res" == "$YadFirstDevice|||" || "$res" == "$YadFirstDevice|"$(pwd)"|" ]]; then
+          continue
+      else
+          PbOut=$(push "$i" "$res")
+          gui_notify "Push $PbOut."
+          break # only send one push if user filled out more than
+                # one tab
+      fi
+  done
+}
+
+# Prepwork
+
+is_instance_running
+
+is_API_set
+
+trap "cleanup" EXIT
+
+mkdir -p "$TmpFolder"
+
+# Main
+
+get_device_list
+
+[[ -f "$1" ]] && gui_file "$1"
+
+gui_main
+       
+push_main
