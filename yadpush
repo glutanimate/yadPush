@@ -30,7 +30,7 @@ TmpFolder="/tmp/pushbullet"
 PlugKey=$RANDOM
 
 ConfigFile="$HOME/.config/pushbullet"
-pushbullet_client="pushbullet-bash"
+pushbullet_client="pushbullet"
 
 ## GUI
 GuiIcon="yadpush"
